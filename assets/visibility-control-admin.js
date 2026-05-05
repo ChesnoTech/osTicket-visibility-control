@@ -239,6 +239,20 @@
         return D.departments;
     }
 
+    // Re-render but preserve matrix scroll position (used after in-matrix
+    // mutations like checkbox toggles, remove-restriction, save).
+    function renderKeepScroll() {
+        var $wrap = $('.vc-matrix-wrap');
+        var sl = $wrap.length ? $wrap.scrollLeft() : 0;
+        var st = $wrap.length ? $wrap.scrollTop() : 0;
+        render();
+        var $newWrap = $('.vc-matrix-wrap');
+        if ($newWrap.length) {
+            $newWrap.scrollLeft(sl);
+            $newWrap.scrollTop(st);
+        }
+    }
+
     // Count agents matching current dept filter + search (used in result counter)
     function countVisibleAgents() {
         var searchLower = state.search.toLowerCase();
@@ -324,7 +338,7 @@
             setAllowedIds(state.tab, state.scope, scopeId, allowed);
         }
 
-        render();
+        renderKeepScroll();
     });
 
     // Remove restriction
@@ -332,7 +346,7 @@
         e.stopPropagation();
         var scopeId = parseInt($(this).data('scope-id'), 10);
         setAllowedIds(state.tab, state.scope, scopeId, null);
-        render();
+        renderKeepScroll();
     });
 
     // Save single row
@@ -390,7 +404,7 @@
                         } else {
                             showToast(i18n.saved, 'success');
                         }
-                        render();
+                        renderKeepScroll();
                     }
                 }
             });
@@ -420,7 +434,7 @@
                 var key = getRuleKey(ruleType, scopeType, scopeId);
                 delete state.dirty[key];
                 showToast(i18n.saved, 'success');
-                render();
+                renderKeepScroll();
             },
             error: function(xhr) {
                 var msg = 'Save failed';
