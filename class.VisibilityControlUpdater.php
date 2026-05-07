@@ -69,11 +69,12 @@ class VisibilityControlUpdater {
         $releases = self::fetchReleases();
 
         if ($releases === false) {
+            $detail = self::getLastFetchError();
             return array(
                 'local'  => $local,
                 'minor'  => null,
                 'major'  => null,
-                'error'  => /* trans */ 'Could not reach GitHub to check for updates',
+                'error'  => $detail ?: /* trans */ 'Could not reach GitHub to check for updates',
                 'cached' => false,
             );
         }
@@ -308,15 +309,55 @@ class VisibilityControlUpdater {
      *
      * @return array|false  Array of {tag, version, name, body, prerelease} or false
      */
+    /**
+     * @return array|false  array of releases, false on failure.
+     *                      Sets self::$lastFetchError with human message.
+     */
+    private static $lastFetchError = null;
+    static function getLastFetchError() { return self::$lastFetchError; }
+
     private static function fetchReleases() {
+        self::$lastFetchError = null;
         $url = 'https://api.github.com/repos/'
              . self::GITHUB_USER . '/' . self::GITHUB_REPO
              . '/releases?per_page=50';
-        $json = self::curlGet($url);
-        if (!$json) return false;
+        $r = self::curlGetEx($url);
 
-        $data = @json_decode($json, true);
-        if (!is_array($data)) return false;
+        if ($r['errno'] || $r['body'] === null) {
+            self::$lastFetchError = sprintf(
+                /* trans */ 'Network error contacting GitHub: %s',
+                $r['error_msg'] ?: 'unknown'
+            );
+            return false;
+        }
+        if ($r['code'] === 404) {
+            self::$lastFetchError = sprintf(
+                /* trans */ 'GitHub repo %s/%s not found (HTTP 404). Check repo name and visibility.',
+                self::GITHUB_USER, self::GITHUB_REPO
+            );
+            return false;
+        }
+        if ($r['code'] === 403) {
+            self::$lastFetchError =
+                /* trans */ 'GitHub API rate limit reached (HTTP 403). Try again later.';
+            return false;
+        }
+        if ($r['code'] !== 200) {
+            self::$lastFetchError = sprintf(
+                /* trans */ 'GitHub returned HTTP %d', $r['code']
+            );
+            return false;
+        }
+
+        $data = @json_decode($r['body'], true);
+        if (!is_array($data)) {
+            self::$lastFetchError = /* trans */ 'GitHub returned malformed JSON';
+            return false;
+        }
+        if (count($data) === 0) {
+            // Repo exists but has no releases yet — treat as up-to-date, not error
+            return array();
+        }
 
         $releases = array();
         foreach ($data as $r) {
@@ -438,9 +479,32 @@ class VisibilityControlUpdater {
         @file_put_contents($file, json_encode($result), LOCK_EX);
     }
 
-    private static function curlGet($url) {
-        if (!function_exists('curl_init'))
-            return false;
+    /**
+     * @return array {body, code, error_msg, errno}
+     */
+    private static function curlGetEx($url) {
+        if (!function_exists('curl_init')) {
+            // Try file_get_contents fallback
+            $ctx = @stream_context_create(array('http' => array(
+                'timeout' => 15, 'follow_location' => 1,
+                'user_agent' => 'osTicket-VisibilityControl-Updater/1.1',
+            )));
+            $body = @file_get_contents($url, false, $ctx);
+            $code = 0;
+            if (isset($http_response_header) && is_array($http_response_header)) {
+                foreach ($http_response_header as $h) {
+                    if (preg_match('#^HTTP/\S+\s+(\d+)#', $h, $m)) {
+                        $code = (int)$m[1]; break;
+                    }
+                }
+            }
+            return array(
+                'body'      => $body !== false ? $body : null,
+                'code'      => $code,
+                'error_msg' => $body === false ? 'fopen wrappers blocked or network unreachable' : '',
+                'errno'     => $body === false ? -1 : 0,
+            );
+        }
 
         $ch = curl_init($url);
         curl_setopt_array($ch, array(
@@ -450,16 +514,27 @@ class VisibilityControlUpdater {
             CURLOPT_TIMEOUT        => 30,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_USERAGENT      => 'osTicket-VisibilityControl-Updater/1.0',
+            CURLOPT_USERAGENT      => 'osTicket-VisibilityControl-Updater/1.1',
         ));
-
         $data = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $err  = curl_errno($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $errno = curl_errno($ch);
+        $errmsg = curl_error($ch);
         curl_close($ch);
 
-        if ($err || $code !== 200) return false;
-        return $data;
+        return array(
+            'body'      => ($data === false) ? null : $data,
+            'code'      => $code,
+            'error_msg' => $errmsg,
+            'errno'     => $errno,
+        );
+    }
+
+    /** Legacy wrapper kept for callers that only need the body. */
+    private static function curlGet($url) {
+        $r = self::curlGetEx($url);
+        if ($r['errno'] || $r['code'] !== 200) return false;
+        return $r['body'];
     }
 
     /**

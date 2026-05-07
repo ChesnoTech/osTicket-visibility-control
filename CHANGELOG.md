@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-05
+
+### Added
+- **"Open Admin Panel" launcher button** on the plugin config page
+  (`Admin Panel → Manage → Plugins → Visibility Control`). Replaces the
+  previously-hidden need to type the admin URL by hand. A secondary
+  "Check for Updates" button deep-links to the matrix Updates tab.
+- **Granular update-check error messages** — distinguishes:
+  - `HTTP 404` → "GitHub repo not found"
+  - `HTTP 403` → "Rate limit reached"
+  - Other HTTP codes → exact code echoed
+  - Network errors → cURL message surfaced
+  - Empty release list → treated as up-to-date instead of error
+- `file_get_contents` fallback in `curlGetEx` when the cURL extension is
+  not loaded.
+
 ## [1.2.1] - 2026-05-05
 
 ### Fixed
@@ -80,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File and database backup before updates
 - Auto-rollback on failed updates
 
+[1.3.0]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.3.0
 [1.2.1]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.2.1
 [1.2.0]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.2.0
 [1.1.0]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.1.0

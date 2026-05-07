@@ -2,7 +2,69 @@
     'use strict';
 
     var D = window.VC_DATA;
-    if (!D) return;
+
+    // ================================================================
+    //  Plugins.php config-page launcher
+    //  When this script runs on plugins.php (admin asset injected), VC_DATA
+    //  is absent. Detect the Visibility Control config page and inject an
+    //  "Open Admin Panel" button + an "Updates" check card so admins do not
+    //  have to type the URL by hand.
+    // ================================================================
+
+    if (!D) {
+        $(function() { initPluginConfigPage(); });
+        return;
+    }
+
+    function initPluginConfigPage() {
+        // Only fire on the VC plugin config page. The plugin name "Visibility Control"
+        // appears in the breadcrumb header rendered by osTicket.
+        var $h2 = $('h2, h1').filter(function() {
+            return $(this).text().indexOf('Visibility Control') !== -1;
+        }).first();
+        if (!$h2.length) return;
+        if ($('.vc-launcher').length) return; // already injected
+
+        // Resolve admin URL relative to current page (plugins.php is at /scp/)
+        var ajaxBase = 'ajax.php/visibility-control';
+
+        var $card = $(
+            '<div class="vc-launcher" style="margin:16px 0;padding:18px 22px;' +
+            'background:#f8fafc;border:1px solid #dfe3e8;border-radius:8px;' +
+            'display:flex;align-items:center;justify-content:space-between;' +
+            'gap:14px;flex-wrap:wrap;">' +
+
+            '<div style="flex:1;min-width:280px;">' +
+              '<div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">' +
+                'Visibility Control — Admin Panel' +
+              '</div>' +
+              '<div style="font-size:13px;color:#637381;">' +
+                'Configure status visibility and transfer rules for agents and departments.' +
+              '</div>' +
+            '</div>' +
+
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+              '<a href="' + ajaxBase + '/admin" target="_blank" rel="noopener" ' +
+                'class="action-button vc-open-admin" ' +
+                'style="display:inline-flex;align-items:center;gap:8px;' +
+                'padding:10px 22px;background:#2563eb;color:#fff;border-radius:6px;' +
+                'text-decoration:none;font-size:14px;font-weight:500;line-height:1;">' +
+                '&#9881; Open Admin Panel' +
+              '</a>' +
+              '<a href="' + ajaxBase + '/admin#updates" target="_blank" rel="noopener" ' +
+                'class="vc-open-updates" ' +
+                'style="display:inline-flex;align-items:center;gap:6px;' +
+                'padding:10px 16px;background:#fff;color:#2563eb;border:1px solid #2563eb;' +
+                'border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;line-height:1;">' +
+                '&#x21bb; Check for Updates' +
+              '</a>' +
+            '</div>' +
+            '</div>'
+        );
+
+        // Insert directly after the plugin breadcrumb header
+        $h2.after($card);
+    }
 
     var i18n = D.i18n;
     var state = {
