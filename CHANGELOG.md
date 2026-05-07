@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-06
+
+### Added
+- **Per-row selection shortcuts** in the matrix actions column. Each row now
+  has three new icon buttons placed before the existing remove (`X`) and
+  `Save` controls:
+  - `&#10003;` **Allow all** — restrict + allow every column for this row
+    (excludes the row's own department in transfer-by-department mode)
+  - `&#8856;` **Block all** — restrict + deny every column (deny-all sentinel)
+  - `&#8646;` **Invert selection** — flip the current allow list
+- **Bulk apply bar** above the matrix when scope is *By Agent*. Two buttons
+  apply *Allow all* / *Block all* to every row matching the current search
+  + department filter. A confirmation dialog appears for >5 rows. Rows are
+  marked dirty; the existing *Save All* button persists everything.
+- New i18n strings: `checkAll`, `clearAll`, `invertSelection`,
+  `applyToVisible`, `bulkCheckAll`, `bulkClearAll`, `confirmBulk`.
+
 ## [1.3.0] - 2026-05-05
 
 ### Added
@@ -96,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File and database backup before updates
 - Auto-rollback on failed updates
 
+[1.4.0]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.4.0
 [1.3.0]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.3.0
 [1.2.1]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.2.1
 [1.2.0]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.2.0

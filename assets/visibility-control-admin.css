@@ -364,6 +364,88 @@ body {
     color: var(--vc-text-secondary);
 }
 
+/* ---- Per-row selection shortcuts (Check All / Clear All / Invert) ---- */
+
+.vc-btn-checkall,
+.vc-btn-clearall,
+.vc-btn-invert {
+    padding: 4px 8px;
+    margin-right: 4px;
+    font-size: 13px;
+    line-height: 1;
+    border: 1px solid var(--vc-border);
+    border-radius: 4px;
+    background: var(--vc-surface);
+    color: var(--vc-text-secondary);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.vc-btn-checkall:hover {
+    color: var(--vc-success);
+    border-color: var(--vc-success);
+    background: var(--vc-success-bg);
+}
+
+.vc-btn-clearall:hover {
+    color: var(--vc-danger);
+    border-color: var(--vc-danger);
+    background: var(--vc-error-bg);
+}
+
+.vc-btn-invert:hover {
+    color: var(--vc-primary);
+    border-color: var(--vc-primary);
+    background: var(--vc-row-hover);
+}
+
+/* ---- Bulk apply bar (above matrix, agent scope only) ---- */
+
+.vc-bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    background: var(--vc-bg);
+    border: 1px dashed var(--vc-border);
+    border-radius: 6px;
+    flex-wrap: wrap;
+}
+
+.vc-bulk-label {
+    font-size: 12px;
+    color: var(--vc-text-secondary);
+    margin-right: 4px;
+    font-weight: 500;
+}
+
+.vc-btn-bulk-check,
+.vc-btn-bulk-clear {
+    padding: 5px 12px;
+    font-size: 12px;
+    line-height: 1;
+    border: 1px solid var(--vc-border);
+    border-radius: 4px;
+    background: var(--vc-surface);
+    color: var(--vc-text);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+
+.vc-btn-bulk-check:hover {
+    color: var(--vc-success);
+    border-color: var(--vc-success);
+    background: var(--vc-success-bg);
+}
+
+.vc-btn-bulk-clear:hover {
+    color: var(--vc-danger);
+    border-color: var(--vc-danger);
+    background: var(--vc-error-bg);
+}
+
 /* ---- Badges ---- */
 
 .vc-badge {

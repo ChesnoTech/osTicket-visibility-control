@@ -163,6 +163,16 @@
                 visible + ' / ' + total + '</span>');
 
             $app.append($bar);
+
+            // Bulk apply bar (visible-rows shortcut)
+            var $bulk = $('<div class="vc-bulk-bar"></div>');
+            $bulk.append('<span class="vc-bulk-label">' +
+                esc(i18n.applyToVisible || 'Apply to visible:') + '</span>');
+            $bulk.append('<button class="vc-btn-bulk-check" type="button">' +
+                '&#10003; ' + esc(i18n.bulkCheckAll || 'Allow all') + '</button>');
+            $bulk.append('<button class="vc-btn-bulk-clear" type="button">' +
+                '&#8856; ' + esc(i18n.bulkClearAll || 'Block all') + '</button>');
+            $app.append($bulk);
         }
 
         // Matrix
@@ -275,6 +285,16 @@
 
             // Row actions
             var $actions = $('<td class="vc-row-actions"></td>');
+            // Per-row selection shortcuts
+            $actions.append('<button class="vc-btn-checkall" data-scope-id="' +
+                row.id + '" title="' + esc(i18n.checkAll || 'Allow all') +
+                '" type="button">&#10003;</button>');
+            $actions.append('<button class="vc-btn-clearall" data-scope-id="' +
+                row.id + '" title="' + esc(i18n.clearAll || 'Block all') +
+                '" type="button">&#8856;</button>');
+            $actions.append('<button class="vc-btn-invert" data-scope-id="' +
+                row.id + '" title="' + esc(i18n.invertSelection || 'Invert selection') +
+                '" type="button">&#8646;</button>');
             if (isRestricted) {
                 $actions.append('<button class="vc-btn vc-btn-sm vc-btn-remove" data-scope-id="' +
                     row.id + '" title="' + esc(i18n.removeRestriction) + '">&#10005;</button>');
@@ -313,6 +333,37 @@
             $newWrap.scrollLeft(sl);
             $newWrap.scrollTop(st);
         }
+    }
+
+    // Compute the full set of column IDs allowed for a given row, honoring
+    // the self-transfer guard (transfer + department scope: exclude own ID).
+    function allColIdsForRow(rowId) {
+        var ids = getCols().map(function(c) { return c.id; });
+        if (state.tab === 'transfer' && state.scope === 'department') {
+            ids = ids.filter(function(id) { return id !== rowId; });
+        }
+        return ids;
+    }
+
+    // Return list of scope IDs visible after applying current search + dept filter.
+    // Department scope: returns all departments (no filter). Agent scope: applies
+    // search + deptFilter.
+    function getVisibleScopeIds() {
+        if (state.scope !== 'agent') {
+            return (D.departments || []).map(function(d) { return d.id; });
+        }
+        var searchLower = state.search.toLowerCase();
+        var ids = [];
+        (D.agents || []).forEach(function(a) {
+            if (state.deptFilter
+                    && String(a.dept_id) !== String(state.deptFilter)) return;
+            if (searchLower
+                    && a.name.toLowerCase().indexOf(searchLower) === -1
+                    && (!a.dept_name || a.dept_name.toLowerCase().indexOf(searchLower) === -1))
+                return;
+            ids.push(a.id);
+        });
+        return ids;
     }
 
     // Count agents matching current dept filter + search (used in result counter)
@@ -410,6 +461,64 @@
         setAllowedIds(state.tab, state.scope, scopeId, null);
         renderKeepScroll();
     });
+
+    // ── Per-row selection shortcuts ──────────────────────────────────
+
+    // Check All — restrict + allow every column (excludes self for transfer-by-dept)
+    $(document).on('click', '.vc-btn-checkall', function(e) {
+        e.stopPropagation();
+        var scopeId = parseInt($(this).data('scope-id'), 10);
+        setAllowedIds(state.tab, state.scope, scopeId, allColIdsForRow(scopeId));
+        renderKeepScroll();
+    });
+
+    // Clear All — restrict + deny every column (sentinel deny-all)
+    $(document).on('click', '.vc-btn-clearall', function(e) {
+        e.stopPropagation();
+        var scopeId = parseInt($(this).data('scope-id'), 10);
+        setAllowedIds(state.tab, state.scope, scopeId, []);
+        renderKeepScroll();
+    });
+
+    // Invert — flip current selection. If unrestricted, treat as "everything
+    // checked" then flip → empty (deny-all). Self-transfer guard preserved.
+    $(document).on('click', '.vc-btn-invert', function(e) {
+        e.stopPropagation();
+        var scopeId = parseInt($(this).data('scope-id'), 10);
+        var current = getAllowedIds(state.tab, state.scope, scopeId);
+        var allIds  = allColIdsForRow(scopeId);
+        var currentSet = current === null ? allIds : current;
+        var inverted = allIds.filter(function(id) {
+            return currentSet.indexOf(id) === -1;
+        });
+        setAllowedIds(state.tab, state.scope, scopeId, inverted);
+        renderKeepScroll();
+    });
+
+    // ── Bulk apply to visible rows ───────────────────────────────────
+
+    function bulkApply(action) {
+        var ids = getVisibleScopeIds();
+        if (ids.length === 0) return;
+
+        if (ids.length > 5) {
+            var msg = (i18n.confirmBulk || 'Apply to %d rows? Click Save All to persist.')
+                .replace('%d', ids.length);
+            if (!window.confirm(msg)) return;
+        }
+
+        ids.forEach(function(rowId) {
+            if (action === 'check') {
+                setAllowedIds(state.tab, state.scope, rowId, allColIdsForRow(rowId));
+            } else if (action === 'clear') {
+                setAllowedIds(state.tab, state.scope, rowId, []);
+            }
+        });
+        renderKeepScroll();
+    }
+
+    $(document).on('click', '.vc-btn-bulk-check', function() { bulkApply('check'); });
+    $(document).on('click', '.vc-btn-bulk-clear', function() { bulkApply('clear'); });
 
     // Save single row
     $(document).on('click', '.vc-btn-save', function(e) {
