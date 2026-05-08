@@ -430,14 +430,36 @@ class VisibilityControlUpdater {
 
             if (substr($name, -1) === '/') {
                 if (!is_dir($outPath)) @mkdir($outPath, 0755, true);
+                if (is_dir($outPath) && !is_writable($outPath))
+                    @chmod($outPath, 0755);
             } else {
                 $dir = dirname($outPath);
                 if (!is_dir($dir)) @mkdir($dir, 0755, true);
-                if (file_put_contents($outPath, $zip->getFromIndex($i)) === false) {
+                if (is_dir($dir) && !is_writable($dir))
+                    @chmod($dir, 0755);
+
+                $contents = $zip->getFromIndex($i);
+
+                // Make existing target writable before overwrite (handles
+                // root-owned files left from manual install / docker cp).
+                if (file_exists($outPath) && !is_writable($outPath))
+                    @chmod($outPath, 0644);
+
+                $written = @file_put_contents($outPath, $contents);
+                if ($written === false) {
+                    // Fallback: unlink + rewrite
+                    @unlink($outPath);
+                    $written = @file_put_contents($outPath, $contents);
+                }
+                if ($written === false) {
+                    $err = error_get_last();
                     $zip->close();
                     return array('success' => false,
-                        'error' => /* trans */ 'Cannot write file: ' . $relative
-                            . ' — check directory permissions (owner must be www-data)');
+                        'error' => sprintf(
+                            /* trans */ 'Cannot write file: %s — %s. Run: chown -R www-data:www-data <plugin-dir>',
+                            $relative,
+                            ($err['message'] ?? 'permission denied')
+                        ));
                 }
             }
         }
@@ -555,12 +577,18 @@ class VisibilityControlUpdater {
     private static function copyDir($src, $dst) {
         if (!is_dir($dst) && !@mkdir($dst, 0755, true))
             return false;
+        if (is_dir($dst) && !is_writable($dst))
+            @chmod($dst, 0755);
 
-        $handle = opendir($src);
+        $handle = @opendir($src);
         if (!$handle) return false;
 
         while (($entry = readdir($handle)) !== false) {
             if ($entry === '.' || $entry === '..') continue;
+            // Skip backup directory and .git when copying the plugin tree
+            // (avoids self-recursion + huge VCS payloads).
+            if ($entry === 'vc-backups' || $entry === '.git') continue;
+
             $srcPath = $src . DIRECTORY_SEPARATOR . $entry;
             $dstPath = $dst . DIRECTORY_SEPARATOR . $entry;
             if (is_dir($srcPath)) {
@@ -569,7 +597,15 @@ class VisibilityControlUpdater {
                     return false;
                 }
             } else {
-                if (!@copy($srcPath, $dstPath)) {
+                // Make existing target writable before overwrite (root-owned files)
+                if (file_exists($dstPath) && !is_writable($dstPath))
+                    @chmod($dstPath, 0644);
+                $copied = @copy($srcPath, $dstPath);
+                if (!$copied) {
+                    @unlink($dstPath);
+                    $copied = @copy($srcPath, $dstPath);
+                }
+                if (!$copied) {
                     closedir($handle);
                     return false;
                 }

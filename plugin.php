@@ -1,7 +1,7 @@
 <?php
 return array(
     'id'          => 'chesnotech:visibility-control',
-    'version'     => '1.4.0',
+    'version'     => '1.4.1',
     'name'        => /* trans */ 'Visibility Control',
     'author'      => 'ChesnoTech',
     'description' => /* trans */ 'Controls which ticket statuses each agent/department can see and use, and which departments they can transfer tickets to.',

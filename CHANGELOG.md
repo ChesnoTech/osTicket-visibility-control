@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-05-08
+
+### Fixed
+- **Auto-update install no longer fails on root-owned plugin files.** Both
+  `extractAndOverwrite()` (zip extraction) and `copyDir()` (rollback) now
+  `chmod 0644` an existing target file before writing, fall back to
+  `unlink + retry` on copy failure, and surface the underlying OS error
+  message in the response. Previously a `docker cp` (or any install that
+  left files owned by root) caused `Cannot write file: .gitignore` and
+  the rollback also failed, leaving the plugin in a half-updated state.
+- `copyDir()` now skips `vc-backups/` and `.git/` to avoid self-recursion
+  and bloated backups.
+- Error messages now include the failing path and the actionable hint
+  `chown -R www-data:www-data <plugin-dir>`.
+
 ## [1.4.0] - 2026-05-06
 
 ### Added
@@ -113,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File and database backup before updates
 - Auto-rollback on failed updates
 
+[1.4.1]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.4.1
 [1.4.0]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.4.0
 [1.3.0]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.3.0
 [1.2.1]: https://github.com/ChesnoTech/osTicket-visibility-control/releases/tag/v1.2.1
