@@ -456,7 +456,7 @@ class VisibilityControlAjax extends AjaxController {
 <title>' . htmlspecialchars($data['i18n']['title']) . '</title>
 <link rel="stylesheet" href="' . $assetBase . '/admin-css?v=' . $v . '">
 </head>
-<body>
+<body class="vc-admin-app">
 <div id="vc-app"></div>
 <script>var VC_DATA = ' . $json . ';</script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

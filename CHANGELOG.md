@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-05-09
+
+### Fixed
+- **`body { color: var(--vc-text); ... }` rule was leaking into every osTicket admin page.** `injectAssets()` adds the admin stylesheet on every URL containing `plugins.php`, but the global `body { ... }` rule applied unconditionally — so when the OS prefers dark mode, **other plugins' admin tabs (e.g. Push Notifications Instances, dashboards, lists)** rendered light text on a light panel background and looked invisible.
+- Scoped the global rules to the VC standalone admin app:
+  - `body { ... }` → `body.vc-admin-app { ... }`
+  - `* { box-sizing ... }` → `body.vc-admin-app *, #vc-app *`
+- The standalone admin HTML now sets `<body class="vc-admin-app">` so the styles still apply to the VC app itself.
+
 ## [1.4.1] - 2026-05-08
 
 ### Fixed
